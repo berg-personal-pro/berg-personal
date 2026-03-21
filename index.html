@@ -4,570 +4,69 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0a0a0f">
-    <title>Berg Personal Pro</title>
+    <title>Berg Personal Pro - IA</title>
     
     <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com"></script>
+    <script src="https://www.gstatic.com"></script>
     
+    <!-- IA TensorFlow & Pose -->
+    <script src="https://cdn.jsdelivr.net"></script>
+    <script src="https://cdn.jsdelivr.net"></script>
+    <script src="https://cdn.jsdelivr.net"></script>
+    <script src="https://cdn.jsdelivr.net"></script>
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        :root { --primary: #ff6b35; --dark: #0a0a0f; --text: #ffffff; --danger: #ff4444; }
+        body { background: var(--dark); color: var(--text); font-family: sans-serif; margin: 0; overflow: hidden; }
+        .screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 15px; text-align: center; }
+        .hidden { display: none !important; }
+        
+        /* Feedback Box */
+        #feedback-box {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); padding: 15px; border-radius: 12px;
+            border: 2px solid var(--primary); width: 85%; z-index: 100;
+            transition: all 0.3s;
         }
-
-        :root {
-            --primary: #ff6b35;
-            --primary-dark: #e55a2b;
-            --dark: #0a0a0f;
-            --card: #12121a;
-            --card-light: #1a1a2e;
-            --text: #ffffff;
-            --muted: #888888;
-            --danger: #ff006e;
-            --warning: #ffb703;
-            --success: #06ffa5;
-            --border: #2a2a3e;
-        }
-
-        body {
-            background: var(--dark);
-            color: var(--text);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* Loading */
-        #loading {
-            position: fixed;
-            inset: 0;
-            background: var(--dark);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            gap: 20px;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid var(--border);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Auth Screen */
-        .auth-screen {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            background: linear-gradient(180deg, var(--dark) 0%, #1a1a2e 100%);
-        }
-
-        .logo {
-            width: 100px;
-            height: 100px;
-            background: var(--primary);
-            border-radius: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            margin-bottom: 24px;
-            box-shadow: 0 0 30px rgba(255, 107, 53, 0.4);
-        }
-
-        h1 {
-            color: var(--primary);
-            font-size: 28px;
-            margin-bottom: 8px;
-        }
-
-        .subtitle {
-            color: var(--muted);
-            margin-bottom: 32px;
-            text-align: center;
-        }
-
-        .form-group {
-            width: 100%;
-            max-width: 320px;
-            margin-bottom: 16px;
-        }
-
-        label {
-            display: block;
-            color: var(--muted);
-            font-size: 12px;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-        }
-
-        input {
-            width: 100%;
-            padding: 16px;
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            background: var(--card-light);
-            color: var(--text);
-            font-size: 16px;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .btn {
-            width: 100%;
-            max-width: 320px;
-            padding: 16px;
-            margin: 8px 0;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #000;
-        }
-
-        .btn-secondary {
-            background: transparent;
-            border: 2px solid var(--primary);
-            color: var(--primary);
-        }
-
-        .error-msg {
-            color: var(--danger);
-            font-size: 14px;
-            margin-top: 8px;
-            text-align: center;
-            max-width: 320px;
-            padding: 0 20px;
-        }
-
-        /* Main App */
-        #mainApp {
-            display: none;
-            min-height: 100vh;
-            padding-bottom: 80px;
-        }
-
-        .header {
-            background: var(--card);
-            padding: 16px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .brand {
-            color: var(--primary);
-            font-size: 22px;
-            font-weight: bold;
-        }
-
-        .btn-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text);
-            font-size: 18px;
-            cursor: pointer;
-        }
-
-        .container {
-            padding: 20px;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .card {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 16px;
-            border: 1px solid var(--border);
-        }
-
-        .card-title {
-            font-size: 18px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Exercise Selector */
-        .exercise-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-
-        .exercise-btn {
-            padding: 16px;
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            background: var(--card-light);
-            color: var(--text);
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .exercise-btn:hover {
-            border-color: var(--primary);
-        }
-
-        .exercise-btn.active {
-            border-color: var(--primary);
-            background: rgba(255, 107, 53, 0.1);
-            color: var(--primary);
-        }
-
-        .exercise-icon {
-            font-size: 32px;
-        }
-
-        /* Video */
-        .video-container {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 4/3;
-            background: #000;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 16px;
-        }
-
-        video, canvas {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-        }
-
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        .video-badge {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: var(--danger);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            display: none;
-        }
-
-        .video-badge.active {
-            display: block;
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* Controls */
-        .controls {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .controls .btn {
-            margin: 0;
-            flex: 1;
-        }
-
-        /* Metrics */
-        .metrics {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-top: 16px;
-        }
-
-        .metric {
-            background: var(--card-light);
-            padding: 16px;
-            border-radius: 12px;
-            text-align: center;
-        }
-
-        .metric-value {
-            font-size: 28px;
-            font-weight: bold;
-            color: var(--primary);
-        }
-
-        .metric-label {
-            font-size: 12px;
-            color: var(--muted);
-            margin-top: 4px;
-        }
-
-        /* Feedback */
-        .feedback-list {
-            max-height: 200px;
-            overflow-y: auto;
-            margin-top: 16px;
-        }
-
-        .feedback-item {
-            background: var(--card-light);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            border-left: 3px solid var(--primary);
-        }
-
-        .feedback-item.critical {
-            border-left-color: var(--danger);
-        }
-
-        .feedback-item.success {
-            border-left-color: var(--success);
-        }
-
-        .feedback-type {
-            font-size: 11px;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-
-        /* Bottom Nav */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--card);
-            border-top: 1px solid var(--border);
-            display: flex;
-            justify-content: space-around;
-            padding: 12px 0;
-            z-index: 100;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            color: var(--muted);
-            font-size: 12px;
-            cursor: pointer;
-            padding: 8px 20px;
-        }
-
-        .nav-item.active {
-            color: var(--primary);
-        }
-
-        /* Toast */
-        .toast {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--card);
-            color: var(--text);
-            padding: 16px 24px;
-            border-radius: 12px;
-            border-left: 4px solid var(--primary);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transition: transform 0.3s;
-            z-index: 10000;
-            max-width: 90%;
-        }
-
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-            text-align: center;
-        }
+        .error-alert { border-color: var(--danger) !important; color: var(--danger) !important; animation: shake 0.5s; }
+        
+        .video-container { position: relative; width: 100%; aspect-ratio: 3/4; background: #000; border-radius: 20px; overflow: hidden; }
+        video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        
+        button { width: 100%; max-width: 300px; padding: 16px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-primary { background: var(--primary); color: black; }
+        
+        @keyframes shake { 0% { transform: translateX(-52%); } 50% { transform: translateX(-48%); } 100% { transform: translateX(-50%); } }
     </style>
 </head>
 <body>
 
-    <!-- Loading -->
-    <div id="loading">
-        <div class="spinner"></div>
-        <p style="color: var(--muted);">Iniciando Berg Pro...</p>
+    <div id="loading" class="screen">
+        <p>Carregando Inteligência Biomecânica...</p>
     </div>
 
-    <!-- Auth Screen -->
-    <div id="authScreen" class="auth-screen hidden">
-        <div class="logo">💪</div>
-        <h1>Berg Personal Pro</h1>
-        <p class="subtitle">Análise biomecânica com IA</p>
-
-        <div id="loginForm">
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="loginEmail" placeholder="seu@email.com">
-            </div>
-            <div class="form-group">
-                <label>Senha</label>
-                <input type="password" id="loginPassword" placeholder="••••••••">
-            </div>
-            <button class="btn btn-primary" onclick="login()" id="loginBtn">Entrar</button>
-            <button class="btn btn-secondary" onclick="showRegister()">Criar Conta</button>
-            <div class="error-msg hidden" id="loginError"></div>
+    <!-- APP PRINCIPAL -->
+    <div id="mainApp" class="screen hidden" style="padding-top: 80px;">
+        
+        <div id="feedback-box">
+            <b id="status-ia" style="color: var(--primary);">🤖 Analisando Movimento...</b>
+            <p id="msg-ia" style="font-size: 14px; margin: 5px 0 0;">Posicione-se em frente à câmera.</p>
         </div>
 
-        <div id="registerForm" class="hidden">
-            <div class="form-group">
-                <label>Nome</label>
-                <input type="text" id="regName" placeholder="Seu nome completo">
-            </div>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="regEmail" placeholder="seu@email.com">
-            </div>
-            <div class="form-group">
-                <label>Senha</label>
-                <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres">
-            </div>
-            <button class="btn btn-primary" onclick="register()" id="registerBtn">Criar Conta</button>
-            <button class="btn btn-secondary" onclick="showLogin()">Voltar</button>
-            <div class="error-msg hidden" id="registerError"></div>
+        <div class="video-container">
+            <video id="video" playsinline></video>
+            <canvas id="output"></canvas>
+        </div>
+
+        <div style="width: 100%; max-width: 320px; margin-top: 10px;">
+            <button class="btn-primary" onclick="iniciarTudo()">ATIVAR IA COM VOZ</button>
+            <button style="background: transparent; border: 1px solid #333; color: #888;" onclick="location.reload()">Resetar</button>
         </div>
     </div>
-
-    <!-- Main App -->
-    <div id="mainApp">
-        <!-- Header -->
-        <div class="header">
-            <span class="brand">💪 Berg Pro</span>
-            <button class="btn-icon" onclick="logout()">🚪</button>
-        </div>
-
-        <div class="container">
-            <!-- Dashboard Screen -->
-            <div id="dashboardScreen">
-                <div class="card">
-                    <div class="card-title">🏋️ Selecione o Exercício</div>
-                    <div class="exercise-grid" id="exerciseGrid">
-                        <!-- Exercícios serão inseridos via JavaScript -->
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title">📹 Análise em Tempo Real</div>
-                    
-                    <div class="video-container">
-                        <video id="video" autoplay playsinline muted></video>
-                        <canvas id="canvas"></canvas>
-                        <div class="video-badge" id="liveBadge">● ANALISANDO</div>
-                    </div>
-
-                    <div class="controls">
-                        <button class="btn btn-primary" onclick="toggleAnalysis()" id="analyzeBtn">▶ Iniciar Análise</button>
-                        <button class="btn btn-secondary" onclick="resetAnalysis()">🔄 Reset</button>
-                    </div>
-
-                    <div class="metrics">
-                        <div class="metric">
-                            <div class="metric-value" id="metricReps">0</div>
-                            <div class="metric-label">Repetições</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value" id="metricScore">--</div>
-                            <div class="metric-label">Score</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value" id="metricAngle">--°</div>
-                            <div class="metric-label">Ângulo</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title">💬 Feedback da IA</div>
-                    <div class="feedback-list" id="feedbackList">
-                        <div style="color: var(--muted); text-align: center; padding: 20px;">
-                            Inicie a análise para receber feedback biomecânico
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Bottom Nav -->
-        <div class="bottom-nav">
-            <div class="nav-item active" onclick="navigateTo('dashboard')">
-                <span style="font-size: 20px;">📹</span>
-                <span>Análise</span>
-            </div>
-            <div class="nav-item" onclick="navigateTo('history')">
-                <span style="font-size: 20px;">📊</span>
-                <span>Histórico</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast -->
-    <div class="toast" id="toast"></div>
 
     <script>
-        // ==================== FIREBASE CONFIG ====================
+        // CONFIG FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyCsaa0s8CuySvmfS7P3daBVAppPgrPaFwig",
             authDomain: "berg-personal-pro.firebaseapp.com",
@@ -576,485 +75,106 @@
             messagingSenderId: "82347101730",
             appId: "1:82347101730:web:ea58eb587b7c62835c047b"
         };
-
-        // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
 
-        // ==================== EXERCÍCIOS ====================
-        const exercises = {
-            squat: { 
-                name: 'Agachamento', 
-                icon: '🦵',
-                joints: ['hip', 'knee', 'ankle'], 
-                threshold: 90,
-                type: 'reps',
-                tips: 'Mantenha os joelhos alinhados aos pés'
-            },
-            pushup: { 
-                name: 'Flexão', 
-                icon: '💪',
-                joints: ['shoulder', 'elbow', 'wrist'], 
-                threshold: 90,
-                type: 'reps',
-                tips: 'Mantenha o corpo reto'
-            },
-            lunge: { 
-                name: 'Afundo', 
-                icon: '🚶',
-                joints: ['hip', 'knee', 'ankle'], 
-                threshold: 90,
-                type: 'reps',
-                tips: 'Joelho de trás quase toca o chão'
-            },
-            plank: { 
-                name: 'Prancha', 
-                icon: '🧘',
-                joints: ['shoulder', 'hip', 'ankle'], 
-                threshold: 170,
-                type: 'time',
-                targetTime: 30,
-                tips: 'Corpo em linha reta'
-            },
-            deadlift: {
-                name: 'Levantamento Terra',
-                icon: '🏋️',
-                joints: ['shoulder', 'hip', 'knee'],
-                threshold: 110,
-                type: 'reps',
-                tips: 'Costas retas, puxe com os quadris'
-            },
-            shoulder_press: {
-                name: 'Desenvolvimento',
-                icon: '🙆',
-                joints: ['shoulder', 'elbow', 'wrist'],
-                threshold: 90,
-                type: 'reps',
-                tips: 'Não arqueie as costas'
-            },
-            bicep_curl: {
-                name: 'Rosca Bíceps',
-                icon: '💪',
-                joints: ['shoulder', 'elbow', 'wrist'],
-                threshold: 60,
-                type: 'reps',
-                tips: 'Cotovelos fixos ao corpo'
-            },
-            lateral_raise: {
-                name: 'Elevação Lateral',
-                icon: '🦅',
-                joints: ['hip', 'shoulder', 'elbow'],
-                threshold: 80,
-                type: 'reps',
-                tips: 'Levante até altura dos ombros'
-            },
-            glute_bridge: {
-                name: 'Ponte de Glúteos',
-                icon: '🍑',
-                joints: ['shoulder', 'hip', 'knee'],
-                threshold: 90,
-                type: 'reps',
-                tips: 'Eleve quadris até alinhar'
-            },
-            wall_sit: {
-                name: 'Agach. Parede',
-                icon: '🧱',
-                joints: ['hip', 'knee', 'ankle'],
-                threshold: 90,
-                type: 'time',
-                targetTime: 45,
-                tips: 'Coxas paralelas ao chão'
-            },
-            superman: {
-                name: 'Superman',
-                icon: '🦸',
-                joints: ['shoulder', 'hip', 'knee'],
-                threshold: 160,
-                type: 'time',
-                targetTime: 20,
-                tips: 'Eleve braços e pernas juntos'
-            },
-            crunch: {
-                name: 'Abdominal',
-                icon: '📦',
-                joints: ['shoulder', 'hip', 'knee'],
-                threshold: 60,
-                type: 'reps',
-                tips: 'Contraia o abdômen'
-            },
-            russian_twist: {
-                name: 'Twist Russo',
-                icon: '🔄',
-                joints: ['hip', 'shoulder', 'elbow'],
-                threshold: 45,
-                type: 'reps',
-                tips: 'Rotação controlada do tronco'
-            },
-            leg_raise: {
-                name: 'Elevação Pernas',
-                icon: '🦵',
-                joints: ['hip', 'knee', 'ankle'],
-                threshold: 80,
-                type: 'reps',
-                tips: 'Mantenha pernas esticadas'
-            },
-            calf_raise: {
-                name: 'Panturrilha',
-                icon: '🦶',
-                joints: ['knee', 'ankle', 'hip'],
-                threshold: 100,
-                type: 'reps',
-                tips: 'Eleve os calcanhares'
-            },
-            bench_dip: {
-                name: 'Mergulho',
-                icon: '🪑',
-                joints: ['shoulder', 'elbow', 'wrist'],
-                threshold: 90,
-                type: 'reps',
-                tips: 'Cotovelos para trás'
-            }
-        };
+        // VARS IA
+        let detector;
+        let ultimaMensagem = "";
+        let audioAtivo = true;
 
-        let currentExercise = 'squat';
-        let isAnalyzing = false;
-        let repCount = 0;
-        let repState = 'up';
-        let staticTimer = null;
-        let staticTimeElapsed = 0;
-
-        // ==================== INICIALIZAÇÃO ====================
-        document.addEventListener('DOMContentLoaded', () => {
-            renderExercises();
-            
-            // Verificar auth
-            auth.onAuthStateChanged(user => {
-                document.getElementById('loading').classList.add('hidden');
-                
-                if (user) {
-                    document.getElementById('authScreen').classList.add('hidden');
-                    document.getElementById('mainApp').style.display = 'block';
-                    initCamera();
-                } else {
-                    document.getElementById('authScreen').classList.remove('hidden');
-                    document.getElementById('mainApp').style.display = 'none';
-                }
-            });
+        firebase.auth().onAuthStateChanged(user => {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
         });
 
-        function renderExercises() {
-            const grid = document.getElementById('exerciseGrid');
-            grid.innerHTML = '';
+        // FUNÇÃO DE VOZ (Texto para Fala)
+        function falar(texto) {
+            if (texto === ultimaMensagem) return; // Não repetir a mesma frase
+            ultimaMensagem = texto;
+            const synth = window.speechSynthesis;
+            const utter = new SpeechSynthesisUtterance(texto);
+            utter.lang = 'pt-BR';
+            utter.rate = 1.1;
+            synth.speak(utter);
+        }
+
+        async function iniciarTudo() {
+            falar("Iniciando análise biomecânica. Por favor, afaste-se.");
+            const video = document.getElementById('video');
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            video.srcObject = stream;
+            await video.play();
             
-            Object.entries(exercises).forEach(([key, ex]) => {
-                const btn = document.createElement('button');
-                btn.className = 'exercise-btn' + (key === currentExercise ? ' active' : '');
-                btn.onclick = () => selectExercise(key, btn);
-                btn.innerHTML = `
-                    <span class="exercise-icon">${ex.icon}</span>
-                    <span>${ex.name}</span>
-                `;
-                grid.appendChild(btn);
-            });
+            const model = poseDetection.SupportedModels.MoveNet;
+            detector = await poseDetection.createDetector(model);
+            requestAnimationFrame(analisar);
         }
 
-        // ==================== AUTH ====================
-        function showLogin() {
-            document.getElementById('loginForm').classList.remove('hidden');
-            document.getElementById('registerForm').classList.add('hidden');
+        // CÁLCULO DE ÂNGULO ENTRE 3 PONTOS
+        function calcularAngulo(A, B, C) {
+            let radians = Math.atan2(C.y - B.y, C.x - B.x) - Math.atan2(A.y - B.y, A.x - B.x);
+            let angle = Math.abs(radians * 180.0 / Math.PI);
+            if (angle > 180) angle = 360 - angle;
+            return angle;
         }
 
-        function showRegister() {
-            document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('registerForm').classList.remove('hidden');
-        }
+        async function analisar() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('output');
+            const ctx = canvas.getContext('2d');
+            const feedbackBox = document.getElementById('feedback-box');
+            const msgIA = document.getElementById('msg-ia');
+            const statusIA = document.getElementById('status-ia');
 
-        async function login() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const btn = document.getElementById('loginBtn');
-            const errorDiv = document.getElementById('loginError');
-            
-            if (!email || !password) {
-                errorDiv.textContent = 'Preencha email e senha';
-                errorDiv.classList.remove('hidden');
-                return;
-            }
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
 
-            btn.disabled = true;
-            btn.textContent = 'Entrando...';
-            errorDiv.classList.add('hidden');
+            const poses = await detector.estimatePoses(video);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            try {
-                await auth.signInWithEmailAndPassword(email, password);
-            } catch (error) {
-                errorDiv.textContent = error.message;
-                errorDiv.classList.remove('hidden');
-                btn.disabled = false;
-                btn.textContent = 'Entrar';
-            }
-        }
+            if (poses.length > 0) {
+                const pts = poses[0].keypoints;
+                
+                // Pegar pontos principais (Ombro, Cotovelo, Pulso) para Rosca Direta
+                const ombro = pts[6]; 
+                const cotovelo = pts[8];
+                const pulso = pts[10];
 
-        async function register() {
-            const name = document.getElementById('regName').value;
-            const email = document.getElementById('regEmail').value;
-            const password = document.getElementById('regPassword').value;
-            const btn = document.getElementById('registerBtn');
-            const errorDiv = document.getElementById('registerError');
+                if (ombro.score > 0.5 && cotovelo.score > 0.5 && pulso.score > 0.5) {
+                    const angulo = calcularAngulo(ombro, cotovelo, pulso);
+                    
+                    // --- LÓGICA DE CORREÇÃO ---
+                    if (angulo < 40) {
+                        feedbackBox.className = "error-alert";
+                        statusIA.innerText = "❌ ERRO DETECTADO";
+                        msgIA.innerText = "Cotovelo muito fechado! Não suba demais a carga.";
+                        falar("Não suba demais a carga, mantenha a tensão muscular.");
+                    } 
+                    else if (angulo > 160) {
+                        feedbackBox.className = "error-alert";
+                        statusIA.innerText = "⚠️ ATENÇÃO";
+                        msgIA.innerText = "Evite estender totalmente para não lesionar.";
+                        falar("Cuidado! Não estenda totalmente o braço.");
+                    }
+                    else {
+                        feedbackBox.className = "";
+                        statusIA.innerText = "✅ EXCELENTE";
+                        statusIA.style.color = "#06ffa5";
+                        msgIA.innerText = "Movimento controlado. Continue assim!";
+                    }
+                }
 
-            if (!name || !email || !password) {
-                errorDiv.textContent = 'Preencha todos os campos';
-                errorDiv.classList.remove('hidden');
-                return;
-            }
-
-            if (password.length < 6) {
-                errorDiv.textContent = 'Senha mínima: 6 caracteres';
-                errorDiv.classList.remove('hidden');
-                return;
-            }
-
-            btn.disabled = true;
-            btn.textContent = 'Criando...';
-            errorDiv.classList.add('hidden');
-
-            try {
-                const cred = await auth.createUserWithEmailAndPassword(email, password);
-                await cred.user.updateProfile({ displayName: name });
-                await db.collection('users').doc(cred.user.uid).set({
-                    name, email, createdAt: new Date()
+                // Desenhar pontos no canvas
+                pts.forEach(kp => {
+                    if (kp.score > 0.5) {
+                        ctx.fillStyle = "#ff6b35";
+                        ctx.beginPath();
+                        ctx.arc(kp.x, kp.y, 5, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
                 });
-            } catch (error) {
-                errorDiv.textContent = error.message;
-                errorDiv.classList.remove('hidden');
-                btn.disabled = false;
-                btn.textContent = 'Criar Conta';
             }
-        }
-
-        function logout() {
-            auth.signOut();
-        }
-
-        // ==================== CÂMERA & ANÁLISE ====================
-        async function initCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'user', width: 640, height: 480 },
-                    audio: false
-                });
-                
-                const video = document.getElementById('video');
-                video.srcObject = stream;
-                
-                showToast('📹 Câmera pronta!');
-            } catch (err) {
-                showToast('❌ Permita acesso à câmera');
-                console.error(err);
-            }
-        }
-
-        function selectExercise(exercise, btn) {
-            currentExercise = exercise;
-            document.querySelectorAll('.exercise-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            resetAnalysis();
-            showToast('🏋️ ' + exercises[exercise].name);
-        }
-
-        function toggleAnalysis() {
-            if (isAnalyzing) {
-                stopAnalysis();
-            } else {
-                startAnalysis();
-            }
-        }
-
-        function startAnalysis() {
-            isAnalyzing = true;
-            repCount = 0;
-            repState = 'up';
-            staticTimeElapsed = 0;
-            
-            document.getElementById('analyzeBtn').textContent = '⏹ Parar';
-            document.getElementById('liveBadge').classList.add('active');
-            document.getElementById('feedbackList').innerHTML = '';
-            
-            addFeedback('success', 'Análise iniciada', exercises[currentExercise].tips);
-            
-            // Simular análise (sem TensorFlow por enquanto)
-            simulateAnalysis();
-        }
-
-        function stopAnalysis() {
-            isAnalyzing = false;
-            
-            if (staticTimer) {
-                clearInterval(staticTimer);
-                staticTimer = null;
-            }
-            
-            document.getElementById('analyzeBtn').textContent = '▶ Iniciar Análise';
-            document.getElementById('liveBadge').classList.remove('active');
-            
-            if (repCount > 0 || staticTimeElapsed > 0) {
-                saveWorkout();
-            }
-        }
-
-        function simulateAnalysis() {
-            if (!isAnalyzing) return;
-            
-            const exercise = exercises[currentExercise];
-            
-            setTimeout(() => {
-                if (!isAnalyzing) return;
-                
-                // Simular ângulo
-                let angle;
-                if (exercise.type === 'time') {
-                    angle = 175 + Math.random() * 5; // Posição estável
-                } else {
-                    angle = Math.floor(Math.random() * 80) + 50; // Variação dinâmica
-                }
-                
-                document.getElementById('metricAngle').textContent = Math.round(angle) + '°';
-                
-                // Calcular score
-                let score = 70;
-                if (exercise.type === 'time') {
-                    score = angle > 170 ? 95 : 75;
-                } else {
-                    if (angle >= 80 && angle <= 100) score = 95;
-                    else if (angle >= 70 && angle <= 110) score = 85;
-                    else if (angle < 60) score = 40;
-                }
-                document.getElementById('metricScore').textContent = score;
-                
-                // Análise por tipo
-                if (exercise.type === 'time') {
-                    analyzeStatic(score, exercise);
-                } else {
-                    analyzeDynamic(angle, score, exercise);
-                }
-                
-                // Feedback
-                generateFeedback(angle, score, exercise);
-                
-                simulateAnalysis();
-            }, 1000);
-        }
-
-        function analyzeDynamic(angle, score, exercise) {
-            const threshold = exercise.threshold;
-            
-            if (angle < threshold && repState === 'up') {
-                repState = 'down';
-            } else if (angle > threshold + 50 && repState === 'down') {
-                repState = 'up';
-                repCount++;
-                document.getElementById('metricReps').textContent = repCount;
-                
-                if (repCount % 5 === 0) {
-                    addFeedback('success', repCount + ' reps!', 'Continue assim!');
-                }
-            }
-        }
-
-        function analyzeStatic(score, exercise) {
-            if (score >= 80) {
-                if (!staticTimer) {
-                    staticTimer = setInterval(() => {
-                        staticTimeElapsed++;
-                        document.getElementById('metricReps').textContent = staticTimeElapsed + 's';
-                        
-                        if (staticTimeElapsed === exercise.targetTime) {
-                            addFeedback('success', '⏱️ Meta atingida!', 'Excelente resistência!');
-                        }
-                    }, 1000);
-                }
-            } else {
-                if (staticTimer) {
-                    clearInterval(staticTimer);
-                    staticTimer = null;
-                    addFeedback('warning', 'Posição perdida', 'Ajuste sua postura');
-                }
-            }
-        }
-
-        function generateFeedback(angle, score, exercise) {
-            const now = Date.now();
-            if (Math.random() > 0.7) {
-                if (score < 50) {
-                    addFeedback('critical', 'Atenção!', 'Ajuste sua forma');
-                } else if (score > 90) {
-                    addFeedback('success', 'Perfeito!', 'Execução excelente');
-                }
-            }
-        }
-
-        function resetAnalysis() {
-            stopAnalysis();
-            repCount = 0;
-            staticTimeElapsed = 0;
-            repState = 'up';
-            document.getElementById('metricReps').textContent = '0';
-            document.getElementById('metricScore').textContent = '--';
-            document.getElementById('metricAngle').textContent = '--°';
-            document.getElementById('feedbackList').innerHTML = '<div style="color: var(--muted); text-align: center; padding: 20px;">Pronto para nova análise</div>';
-        }
-
-        async function saveWorkout() {
-            const user = auth.currentUser;
-            if (!user) return;
-            
-            const workout = {
-                userId: user.uid,
-                exercise: currentExercise,
-                exerciseName: exercises[currentExercise].name,
-                reps: repCount,
-                duration: staticTimeElapsed,
-                score: parseInt(document.getElementById('metricScore').textContent) || 0,
-                timestamp: new Date()
-            };
-            
-            try {
-                await db.collection('workouts').add(workout);
-                showToast('✅ Treino salvo!');
-            } catch (err) {
-                console.error('Erro ao salvar:', err);
-            }
-        }
-
-        // ==================== FEEDBACK & UI ====================
-        function addFeedback(type, title, message) {
-            const list = document.getElementById('feedbackList');
-            const div = document.createElement('div');
-            div.className = 'feedback-item ' + type;
-            div.innerHTML = `
-                <div class="feedback-type" style="color: var(--${type === 'critical' ? 'danger' : type === 'success' ? 'success' : 'primary'})">${type.toUpperCase()}</div>
-                <div style="font-weight: bold;">${title}</div>
-                <div style="font-size: 13px; color: var(--muted);">${message}</div>
-            `;
-            list.insertBefore(div, list.firstChild);
-            
-            while (list.children.length > 6) {
-                list.removeChild(list.lastChild);
-            }
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        function navigateTo(screen) {
-            // Implementar navegação entre telas
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            event.target.closest('.nav-item').classList.add('active');
+            requestAnimationFrame(analisar);
         }
     </script>
 </body>

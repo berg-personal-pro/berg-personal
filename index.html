@@ -2624,8 +2624,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         theme_color: '#2a5298',
                         orientation: 'portrait',
                         icons: [
-                            { src: window.location.origin + '/icon-192.png', sizes: '192x192', type: 'image/png' },
-                            { src: window.location.origin + '/icon-512.png', sizes: '512x512', type: 'image/png' }
+                            { src: new URL('icon-192.png', window.location.href).href, sizes: '192x192', type: 'image/png' },
+                            { src: new URL('icon-512.png', window.location.href).href, sizes: '512x512', type: 'image/png' }
                         ]
                     };
                     const blob = new Blob([JSON.stringify(manifestObj)], { type: 'application/json' });
@@ -5429,7 +5429,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      navigator.serviceWorker.register('sw.js').catch(() => {});
     });
   }
 </script>
